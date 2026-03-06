@@ -1,6 +1,57 @@
-import React from "react";
+import { useState, useEffect } from "react";
+import { getFlieOptions } from "../services/flieUtils";
 
 const OrderCard = ({ order, onUpdateStatus }) => {
+  const [timeLeft, setTimeLeft] = useState(null);
+  const options = getFlieOptions();
+
+  useEffect(() => {
+    if (order.status !== "picked_up") {
+      setTimeLeft(null);
+      return;
+    }
+
+    // Logic: If picked_up_at exists, use it. Otherwise, assume it was just picked up
+    // for demonstration/fallback if backend doesn't provide the timestamp yet.
+    const pickupTime = order.picked_up_at
+      ? new Date(order.picked_up_at).getTime()
+      : Date.now();
+    const limitMs = (options.delivery_time_limit || 30) * 60 * 1000;
+    const deadline = pickupTime + limitMs;
+
+    const timer = setInterval(() => {
+      const now = Date.now();
+      const diff = deadline - now;
+
+      if (diff <= 0) {
+        setTimeLeft(0);
+        clearInterval(timer);
+      } else {
+        setTimeLeft(diff);
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [order.status, order.picked_up_at, options.delivery_time_limit]);
+
+  const formatTimeLeft = (ms) => {
+    if (ms === null) return "";
+    if (ms <= 0) return "EXPIRED";
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  };
+
+  const getTimerStyles = (ms) => {
+    if (ms === null) return "";
+    const minutes = ms / (1000 * 60);
+    if (minutes <= 3)
+      return "bg-red-100 text-red-600 border-red-200 animate-pulse";
+    if (minutes <= 10) return "bg-orange-100 text-orange-600 border-orange-200";
+    return "bg-indigo-50 text-indigo-700 border-indigo-100";
+  };
+
   const handleNavigate = () => {
     const isPrePickup = order.status === "assigned";
     const destLat = isPrePickup ? order.partner?.latitude : order.latitude;
@@ -31,48 +82,28 @@ const OrderCard = ({ order, onUpdateStatus }) => {
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-300">
-      <div className="p-4 sm:p-5">
+      <div className="p-3.5 sm:p-4">
         {/* Header: Order ID & Status */}
-        <div className="flex justify-between items-start mb-4">
-          <div>
-            <div className="flex items-center space-x-2">
-              <span className="text-sm font-extrabold text-gray-900">
-                Order #{order.id}
-              </span>
+        <div className="flex justify-between items-center mb-3">
+          <div className="flex items-center space-x-2">
+            <span className="text-sm font-extrabold text-gray-900 leading-none">
+              #{order.id}
+            </span>
+            <span
+              className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border uppercase tracking-wider ${getStatusColor(
+                order.status,
+              )}`}
+            >
+              {order.status?.replace("_", " ")}
+            </span>
+            {order.status === "picked_up" && timeLeft !== null && (
               <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider ${getStatusColor(
-                  order.status,
+                className={`text-[10px] font-extrabold px-2 py-0.5 rounded-lg border flex items-center space-x-1 ${getTimerStyles(
+                  timeLeft,
                 )}`}
               >
-                {order.status?.replace("_", " ")}
-              </span>
-            </div>
-            <p className="text-xs text-gray-500 font-medium mt-1">
-              {new Date(order.created_at).toLocaleString("en-US", {
-                month: "short",
-                day: "numeric",
-                hour: "numeric",
-                minute: "2-digit",
-              })}
-            </p>
-          </div>
-          <div className="text-right flex flex-col items-end">
-            <span className="text-base font-extrabold text-gray-900">
-              ₹{order.final_amount}
-            </span>
-            <span className="text-[10px] px-2 py-0.5 rounded bg-gray-100 text-gray-600 uppercase font-bold mt-1">
-              {order.payment_method} • {order.payment_status}
-            </span>
-          </div>
-        </div>
-
-        {/* Addresses */}
-        <div className="space-y-2 mb-4">
-          {order.status === "assigned" && order.partner && (
-            <div className="bg-orange-50 rounded-xl p-3 flex items-start space-x-3 border border-orange-100">
-              <div className="bg-white p-1.5 rounded-lg shadow-sm border border-orange-100">
                 <svg
-                  className="w-5 h-5 text-orange-600"
+                  className="w-3 h-3"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -80,78 +111,77 @@ const OrderCard = ({ order, onUpdateStatus }) => {
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    strokeWidth={2.5}
-                    d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                    strokeWidth={3}
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
+                <span>{formatTimeLeft(timeLeft)}</span>
+              </span>
+            )}
+          </div>
+          <div className="text-right flex items-center space-x-3">
+            <span className="text-sm font-extrabold text-gray-900">
+              ₹{order.final_amount}
+            </span>
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 uppercase font-bold">
+              {order.payment_method}
+            </span>
+          </div>
+        </div>
+
+        {/* Compressed Address Timeline */}
+        <div className="relative mb-3.5 px-1">
+          <div className="absolute left-[11px] top-[10px] bottom-[10px] w-0.5 border-l-2 border-dashed border-gray-200"></div>
+
+          {order.status === "assigned" && order.partner && (
+            <div className="relative flex items-start space-x-3 mb-2.5">
+              <div className="mt-1 w-4 h-4 rounded-full bg-orange-100 border-2 border-white shadow-sm flex items-center justify-center z-10">
+                <div className="w-1.5 h-1.5 rounded-full bg-orange-500"></div>
               </div>
-              <div className="flex-1">
-                <p className="text-[10px] font-bold text-orange-600 uppercase mb-0.5">
-                  Pickup: {order.partner.store_name}
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] text-gray-400 font-bold uppercase leading-none mb-1">
+                  Pickup • {order.partner.store_name}
                 </p>
-                <p className="text-xs text-gray-800 leading-relaxed font-medium line-clamp-2">
+                <p className="text-xs text-gray-600 font-medium truncate">
                   {order.partner.address}
                 </p>
               </div>
             </div>
           )}
 
-          <div className="bg-gray-50 rounded-xl p-3 flex items-start space-x-3 border border-gray-100">
-            <div className="bg-white p-1.5 rounded-lg shadow-sm border border-gray-100">
-              <svg
-                className="w-5 h-5 text-indigo-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2.5}
-                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2.5}
-                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-              </svg>
+          <div className="relative flex items-start space-x-3">
+            <div className="mt-1 w-4 h-4 rounded-full bg-indigo-100 border-2 border-white shadow-sm flex items-center justify-center z-10">
+              <div className="w-1.5 h-1.5 rounded-full bg-indigo-600"></div>
             </div>
-            <div className="flex-1">
-              <p className="text-[10px] font-bold text-indigo-600 uppercase mb-0.5">
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] text-gray-400 font-bold uppercase leading-none mb-1">
                 Drop-off
               </p>
-              <p className="text-xs text-gray-700 leading-relaxed font-medium line-clamp-3">
+              <p className="text-xs text-gray-700 font-semibold truncate">
                 {order.address}
               </p>
             </div>
           </div>
         </div>
 
-        {/* Items List */}
-        <div className="mb-5 space-y-2">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">
-            Order Items
+        {/* Condensed Items Summary */}
+        <div className="mb-4 bg-gray-50/80 rounded-lg px-2.5 py-2 flex items-center justify-between">
+          <p className="text-[11px] text-gray-600 font-medium truncate flex-1 mr-2">
+            <span className="text-indigo-600 font-bold mr-1.5">
+              {order.items?.length || 0} Items:
+            </span>
+            {order.items?.map((item) => item.item_name).join(", ")}
           </p>
-          {order.items?.map((item) => (
-            <div
-              key={item.id}
-              className="flex justify-between items-center text-sm bg-gray-50/50 px-2 py-1.5 rounded-lg"
-            >
-              <span className="text-gray-800 font-medium flex items-center text-xs">
-                <span className="w-1 h-1 rounded-full bg-indigo-400 mr-2.5"></span>
-                {item.item_name}
-              </span>
-              <span className="text-gray-900 font-bold text-xs">
-                ₹{item.total_price}
-              </span>
-            </div>
-          ))}
+          <span className="text-[10px] text-gray-400 font-bold whitespace-nowrap">
+            {new Date(order.created_at).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </span>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-2.5 mt-5 pt-4 border-t border-gray-100">
+        <div className="flex gap-2 border-t border-gray-100 pt-3.5">
           <button
             onClick={handleNavigate}
             title={
@@ -159,10 +189,10 @@ const OrderCard = ({ order, onUpdateStatus }) => {
                 ? "Navigate to Store"
                 : "Navigate to Drop"
             }
-            className="flex items-center justify-center w-11 h-11 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl transition-colors cursor-pointer border border-indigo-100 shrink-0"
+            className="flex items-center justify-center w-10 h-10 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl transition-colors cursor-pointer border border-indigo-100 shrink-0"
           >
             <svg
-              className="w-5 h-5"
+              className="w-4.5 h-4.5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -180,10 +210,10 @@ const OrderCard = ({ order, onUpdateStatus }) => {
             <a
               href={`tel:${order.customer_phone}`}
               title="Call Customer"
-              className="flex items-center justify-center w-11 h-11 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl transition-colors cursor-pointer border border-emerald-100 shrink-0"
+              className="flex items-center justify-center w-10 h-10 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl transition-colors cursor-pointer border border-emerald-100 shrink-0"
             >
               <svg
-                className="w-5 h-5"
+                className="w-4.5 h-4.5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -201,7 +231,7 @@ const OrderCard = ({ order, onUpdateStatus }) => {
           {order.status === "assigned" && (
             <button
               onClick={() => onUpdateStatus(order.id, "picked_up")}
-              className="flex-1 flex items-center justify-center bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold h-11 rounded-xl transition-all shadow-sm hover:shadow-md cursor-pointer active:scale-[0.98]"
+              className="flex-1 flex items-center justify-center bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold h-10 rounded-xl transition-all shadow-sm active:scale-[0.98]"
             >
               Mark Picked Up
             </button>
@@ -210,15 +240,15 @@ const OrderCard = ({ order, onUpdateStatus }) => {
           {order.status === "picked_up" && (
             <button
               onClick={() => onUpdateStatus(order.id, "delivered")}
-              className="flex-1 flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold h-11 rounded-xl transition-all shadow-sm hover:shadow-md cursor-pointer active:scale-[0.98]"
+              className="flex-1 flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold h-10 rounded-xl transition-all shadow-sm active:scale-[0.98]"
             >
               Mark Delivered
             </button>
           )}
 
           {order.status !== "assigned" && order.status !== "picked_up" && (
-            <div className="flex-1 flex items-center justify-center bg-gray-50 text-gray-500 text-sm font-bold h-11 rounded-xl border border-gray-100 cursor-not-allowed">
-              {order.status === "delivered" ? "Delivered" : "Completed"}
+            <div className="flex-1 flex items-center justify-center bg-gray-50 text-gray-400 text-xs font-bold h-10 rounded-xl border border-gray-100 italic">
+              Order {order.status}
             </div>
           )}
         </div>
