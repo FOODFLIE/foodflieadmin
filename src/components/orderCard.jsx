@@ -11,25 +11,20 @@ const OrderCard = ({ order, onUpdateStatus }) => {
       return;
     }
 
-    // Logic: If picked_up_at exists, use it. Otherwise, assume it was just picked up
-    // for demonstration/fallback if backend doesn't provide the timestamp yet.
     const pickupTime = order.picked_up_at
       ? new Date(order.picked_up_at).getTime()
       : Date.now();
-    const limitMs = (options.delivery_time_limit || 30) * 60 * 1000;
-    const deadline = pickupTime + limitMs;
+    const limitMin = options.delivery_time_limit || 30;
+    const deadline = pickupTime + limitMin * 60 * 1000;
 
-    const timer = setInterval(() => {
+    const calculate = () => {
       const now = Date.now();
       const diff = deadline - now;
+      setTimeLeft(diff <= 0 ? 0 : diff);
+    };
 
-      if (diff <= 0) {
-        setTimeLeft(0);
-        clearInterval(timer);
-      } else {
-        setTimeLeft(diff);
-      }
-    }, 1000);
+    calculate(); // Set initial value immediately
+    const timer = setInterval(calculate, 1000);
 
     return () => clearInterval(timer);
   }, [order.status, order.picked_up_at, options.delivery_time_limit]);
@@ -96,28 +91,6 @@ const OrderCard = ({ order, onUpdateStatus }) => {
             >
               {order.status?.replace("_", " ")}
             </span>
-            {order.status === "picked_up" && timeLeft !== null && (
-              <span
-                className={`text-[10px] font-extrabold px-2 py-0.5 rounded-lg border flex items-center space-x-1 ${getTimerStyles(
-                  timeLeft,
-                )}`}
-              >
-                <svg
-                  className="w-3 h-3"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={3}
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                <span>{formatTimeLeft(timeLeft)}</span>
-              </span>
-            )}
           </div>
           <div className="text-right flex items-center space-x-3">
             <span className="text-sm font-extrabold text-gray-900">
@@ -128,6 +101,39 @@ const OrderCard = ({ order, onUpdateStatus }) => {
             </span>
           </div>
         </div>
+
+        {/* Delivery Timer - Only for picked up orders */}
+        {order.status?.toLowerCase() === "picked_up" && timeLeft !== null && (
+          <div className="mb-3 px-1">
+            <div
+              className={`flex items-center justify-between px-3 py-2 rounded-xl border-2 shadow-sm transition-all duration-300 ${getTimerStyles(
+                timeLeft,
+              )}`}
+            >
+              <div className="flex items-center space-x-2">
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2.5}
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <span className="text-[11px] font-black uppercase tracking-wider">
+                  Deliver In
+                </span>
+              </div>
+              <span className="text-lg font-black tabular-nums tracking-tighter">
+                {formatTimeLeft(timeLeft)}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Compressed Address Timeline */}
         <div className="relative mb-3.5 px-1">
