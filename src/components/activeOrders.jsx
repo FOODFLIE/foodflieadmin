@@ -1,5 +1,5 @@
 import React from "react";
-import OrderCard from "./OrderCard";
+import OrderCard from "./orderCard";
 
 const ActiveOrders = ({ orders, loading, onRefresh, onUpdateStatus }) => {
   return (

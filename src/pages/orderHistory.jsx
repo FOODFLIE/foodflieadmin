@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getRiderOrders } from "../services/riderServices";
 import RiderHeader from "../components/riderHeader";
-import OrderCard from "../components/OrderCard";
+import OrderCard from "../components/orderCard";
 
 const OrderHistory = () => {
   const navigate = useNavigate();
