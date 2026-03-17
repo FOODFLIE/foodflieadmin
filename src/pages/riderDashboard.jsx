@@ -207,7 +207,9 @@ const RiderDashboard = () => {
                   />
                 </svg>
               </div>
-              <div>
+              <div
+              onClick={() =>navigate("/order-history") }
+              >
                 <p className="text-sm font-bold text-gray-800">Order History</p>
                 <p className="text-[10px] text-gray-400 font-medium">
                   View your past successful deliveries
