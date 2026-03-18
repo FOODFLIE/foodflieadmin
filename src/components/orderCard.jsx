@@ -6,16 +6,25 @@ const OrderCard = ({ order, onUpdateStatus }) => {
   const options = getFlieOptions();
 
   useEffect(() => {
-    if (order.status !== "picked_up") {
+    if (order.status === "delivered" || order.status === "cancelled") {
       setTimeLeft(null);
+      localStorage.removeItem(`order_deadline_${order.id}`);
       return;
     }
 
-    const pickupTime = order.picked_up_at
-      ? new Date(order.picked_up_at).getTime()
-      : Date.now();
-    const limitMin = options.delivery_time_limit || 30;
-    const deadline = pickupTime + limitMin * 60 * 1000;
+    let deadline;
+    const storedDeadline = localStorage.getItem(`order_deadline_${order.id}`);
+    
+    if (storedDeadline) {
+      deadline = parseInt(storedDeadline);
+    } else {
+      const assignedTime = order.assigned_at
+        ? new Date(order.assigned_at).getTime()
+        : Date.now();
+      const limitMin = options.delivery_time_limit || 30;
+      deadline = assignedTime + limitMin * 60 * 1000;
+      localStorage.setItem(`order_deadline_${order.id}`, deadline.toString());
+    }
 
     const calculate = () => {
       const now = Date.now();
@@ -27,7 +36,7 @@ const OrderCard = ({ order, onUpdateStatus }) => {
     const timer = setInterval(calculate, 1000);
 
     return () => clearInterval(timer);
-  }, [order.status, order.picked_up_at, options.delivery_time_limit]);
+  }, [order.id, order.status, options.delivery_time_limit]);
 
   const formatTimeLeft = (ms) => {
     if (ms === null) return "";
@@ -102,8 +111,8 @@ const OrderCard = ({ order, onUpdateStatus }) => {
           </div>
         </div>
 
-        {/* Delivery Timer - Only for picked up orders */}
-        {order.status?.toLowerCase() === "picked_up" && timeLeft !== null && (
+        {/* Delivery Timer - Starts from rider assignment */}
+        {order.status !== "delivered" && order.status !== "cancelled" && timeLeft !== null && (
           <div className="mb-3 px-1">
             <div
               className={`flex items-center justify-between px-3 py-2 rounded-xl border-2 shadow-sm transition-all duration-300 ${getTimerStyles(
