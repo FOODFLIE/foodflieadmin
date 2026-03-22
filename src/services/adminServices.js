@@ -17,3 +17,11 @@ export const getOrders = async () => {
   const response = await apiClient.get("/api/admin/orders");
   return response.data;
 };
+export const getNewCustomers = async () => {
+  try {
+    const response = await apiClient.get("/api/admin/customers/daily");
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching new customers:", error);
+  }
+};

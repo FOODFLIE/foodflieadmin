@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getOrders } from "../services/adminServices";
+import { getNewCustomers, getOrders } from "../services/adminServices";
 import Riders from "./riders";
 import Affiliates from "./affiliates";
 const Dashboard = () => {
@@ -14,6 +14,7 @@ const Dashboard = () => {
     totalRevenue: 0,
     totalUsers: 0,
     activeOrders: 0,
+    newCustomers: 0,
   });
 
   useEffect(() => {
@@ -23,12 +24,14 @@ const Dashboard = () => {
       return;
     }
     fetchOrders();
+    fetchCustomers();
   }, [navigate]);
 
   const fetchOrders = async () => {
     try {
       const data = await getOrders();
       setOrders(data);
+      console.log("Fetched orders:", data);
 
       const totalRevenue = data.reduce(
         (sum, order) => sum + parseFloat(order.total_amount),
@@ -47,6 +50,21 @@ const Dashboard = () => {
       console.error("Failed to fetch orders:", error);
     } finally {
       setLoading(false);
+    }
+  };
+  const fetchCustomers = async () => {
+    try {
+      const newCustomers = await getNewCustomers();
+      setStats((prev) => ({
+        ...prev,
+        newCustomers: newCustomers?.length || 0,
+      }));
+    } catch (error) {
+      console.error("Failed to fetch customers:", error);
+      setStats((prev) => ({
+        ...prev,
+        newCustomers: 0,
+      }));
     }
   };
 
@@ -219,6 +237,7 @@ const Dashboard = () => {
             </svg>
           }
         />
+
         <StatCard
           title="Active Orders"
           value={stats.activeOrders}
@@ -236,6 +255,26 @@ const Dashboard = () => {
                 strokeLinejoin="round"
                 strokeWidth={2}
                 d="M13 10V3L4 14h7v7l9-11h-7z"
+              />
+            </svg>
+          }
+        />
+        <StatCard
+          title="New Customers (Today)"
+          value={stats.newCustomers || 0}
+          color="bg-indigo-100"
+          icon={
+            <svg
+              className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-indigo-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 13l4 4L19 7"
               />
             </svg>
           }
@@ -328,8 +367,18 @@ const Dashboard = () => {
                           href={`tel:${order.customer.phone}`}
                           className="inline-flex items-center space-x-1 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs font-medium transition"
                         >
-                          <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                          <svg
+                            className="w-3 h-3 sm:w-4 sm:h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+                            />
                           </svg>
                           <span>Call</span>
                         </a>
