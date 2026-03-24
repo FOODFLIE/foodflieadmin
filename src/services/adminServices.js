@@ -25,3 +25,15 @@ export const getNewCustomers = async () => {
     console.error("Error fetching new customers:", error);
   }
 };
+
+export const getStores = async () => {
+  const response = await apiClient.get("/api/admin/stores");
+  return response.data;
+};
+
+export const toggleStoreStatus = async (id, is_active) => {
+  const response = await apiClient.put(`/api/admin/stores/${id}`, {
+    is_active,
+  });
+  return response.data;
+};
