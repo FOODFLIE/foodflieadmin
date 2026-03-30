@@ -55,10 +55,10 @@ const Dashboard = () => {
   };
   const fetchCustomers = async () => {
     try {
-      const newCustomers = await getNewCustomers();
+      const response = await getNewCustomers();
       setStats((prev) => ({
         ...prev,
-        newCustomers: newCustomers?.length || 0,
+        newCustomers: response?.data?.registrations || 0,
       }));
     } catch (error) {
       console.error("Failed to fetch customers:", error);
