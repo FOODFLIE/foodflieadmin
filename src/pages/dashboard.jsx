@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { getNewCustomers, getOrders } from "../services/adminServices";
 import Riders from "./riders";
 import Affiliates from "./affiliates";
+import Coupons from "./coupons";
 import Stores from "./stores";
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -114,8 +115,8 @@ const Dashboard = () => {
       ),
     },
     {
-      id: "affiliates",
-      label: "Affiliates",
+      id: "coupons",
+      label: "Coupons",
       icon: (
         <svg
           className="w-5 h-5"
@@ -127,7 +128,7 @@ const Dashboard = () => {
             strokeLinecap="round"
             strokeLinejoin="round"
             strokeWidth={2}
-            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+            d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
           />
         </svg>
       ),
@@ -538,6 +539,7 @@ const Dashboard = () => {
           {activeSection === "dashboard" && <DashboardContent />}
           {activeSection === "riders" && <Riders />}
           {activeSection === "affiliates" && <Affiliates />}
+          {activeSection === "coupons" && <Coupons />}
           {activeSection === "stores" && <Stores />}
         </main>
       </div>
