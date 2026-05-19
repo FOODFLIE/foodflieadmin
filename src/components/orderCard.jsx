@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { getFlieOptions } from "../services/flieUtils";
 
 const OrderCard = ({ order, onUpdateStatus }) => {
+  console.log("Rendering OrderCard for order ID:", order);
   const [timeLeft, setTimeLeft] = useState(null);
   const options = getFlieOptions();
 
@@ -185,7 +186,7 @@ const OrderCard = ({ order, onUpdateStatus }) => {
             <span className="text-indigo-600 font-bold mr-1.5">
               {order.items?.length || 0} Items:
             </span>
-            {order.items?.map((item) => item.item_name).join(", ")}
+            {order.items?.map((item) => `${item.item_name} x${item.quantity}`).join(", ")}
           </p>
           <span className="text-[10px] text-gray-400 font-bold whitespace-nowrap">
             {new Date(order.created_at).toLocaleTimeString([], {
