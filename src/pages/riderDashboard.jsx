@@ -156,7 +156,10 @@ const RiderDashboard = () => {
               ₹
               {orders
                 .filter((o) => o.status === "delivered")
-                .reduce((sum, o) => sum + parseFloat(o.final_amount || 0), 0)
+                .reduce((sum, o) => {
+                  const val = parseFloat(o.delivery_fee || o.final_amount || 0);
+                  return sum + (isNaN(val) ? 0 : val);
+                }, 0)
                 .toFixed(0)}
             </p>
           </div>
