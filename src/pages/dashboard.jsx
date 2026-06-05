@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getNewCustomers, getOrders } from "../services/adminServices";
+import { getNewCustomers, getOrders, verifyOrderPayment } from "../services/adminServices";
 import Riders from "./riders";
 import Affiliates from "./affiliates";
 import Coupons from "./coupons";
@@ -73,6 +73,17 @@ const Dashboard = () => {
   const handleLogout = () => {
     localStorage.removeItem("adminToken");
     navigate("/");
+  };
+
+  const handleVerifyPayment = async (orderId) => {
+    if (!window.confirm(`Are you sure you want to verify payment for order #${orderId}?`)) return;
+    try {
+      await verifyOrderPayment(orderId);
+      fetchOrders();
+    } catch (error) {
+      console.error("Failed to verify payment:", error);
+      alert("Failed to verify payment.");
+    }
   };
 
   const navItems = [
@@ -376,6 +387,16 @@ const Dashboard = () => {
                         >
                           {order.status}
                         </span>
+                        {order.payment_status === "PENDING_VERIFICATION" && (
+                          <div className="mt-2 text-xs font-semibold text-amber-600">
+                            UTR: {order.payment_utr}
+                          </div>
+                        )}
+                        {order.payment_status?.toLowerCase() === "completed" && (
+                          <div className="mt-2 text-xs font-semibold text-green-600">
+                            Paid (UTR: {order.payment_utr})
+                          </div>
+                        )}
                       </td>
                       <td className="py-2 sm:py-3 px-3 sm:px-4 text-xs sm:text-sm text-gray-600">
                         {new Date(order.created_at).toLocaleDateString(
@@ -383,10 +404,10 @@ const Dashboard = () => {
                           { month: "short", day: "numeric", year: "numeric" },
                         )}
                       </td>
-                      <td className="py-2 sm:py-3 px-3 sm:px-4">
+                      <td className="py-2 sm:py-3 px-3 sm:px-4 flex flex-col gap-2">
                         <a
                           href={`tel:${order.customer.phone}`}
-                          className="inline-flex items-center space-x-1 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs font-medium transition"
+                          className="inline-flex items-center space-x-1 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs font-medium transition w-fit"
                         >
                           <svg
                             className="w-3 h-3 sm:w-4 sm:h-4"
@@ -403,6 +424,14 @@ const Dashboard = () => {
                           </svg>
                           <span>Call</span>
                         </a>
+                        {order.payment_status === "PENDING_VERIFICATION" && (
+                          <button
+                            onClick={() => handleVerifyPayment(order.id)}
+                            className="inline-flex items-center space-x-1 px-3 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-xs font-medium transition w-fit"
+                          >
+                            Verify Payment
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );

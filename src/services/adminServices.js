@@ -17,6 +17,12 @@ export const getOrders = async () => {
   const response = await apiClient.get("/api/admin/orders");
   return response.data;
 };
+
+export const verifyOrderPayment = async (orderId) => {
+  const response = await apiClient.put(`/api/admin/orders/${orderId}/verify-payment`);
+  return response.data;
+};
+
 export const getNewCustomers = async () => {
   try {
     const response = await apiClient.get("/api/admin/customers/daily");
